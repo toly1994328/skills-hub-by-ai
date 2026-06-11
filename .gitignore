@@ -1,0 +1,17 @@
+# 参考项目
+docs/ref/
+
+# Rust
+server/target/
+
+# 环境配置
+.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Flutter
+client/.dart_tool/
+client/build/
