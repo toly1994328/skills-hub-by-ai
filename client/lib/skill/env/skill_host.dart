@@ -6,7 +6,7 @@ class SkillHost extends Host {
   @override
   Map<HostEnv, String> get value => {
     HostEnv.release: 'toly1994.com',
-    HostEnv.dev: '127.0.0.1',
+    HostEnv.dev: '192.168.1.76',
   };
 
   @override

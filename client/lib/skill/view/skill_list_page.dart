@@ -5,6 +5,7 @@ import '../cubit/skill_list_cubit.dart';
 import '../cubit/skill_list_state.dart';
 import 'skill_card.dart';
 import 'skill_detail_page.dart';
+import 'skill_publish_page.dart';
 
 class SkillListPage extends StatelessWidget {
   const SkillListPage({super.key});
@@ -38,6 +39,12 @@ class _SkillListView extends StatelessWidget {
         backgroundColor: const Color(0xFFEDEDED),
         elevation: 0,
         scrolledUnderElevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: Color(0xFF181818)),
+            onPressed: () => _navigateToPublish(context),
+          ),
+        ],
       ),
       body: BlocBuilder<SkillListCubit, SkillListState>(
         builder: (context, state) {
@@ -47,7 +54,7 @@ class _SkillListView extends StatelessWidget {
               if (state.skills.isEmpty) {
                 return const Center(
                   child: CircularProgressIndicator(
-                    color: Color(0xFF07C160),
+                    color: Color(0xFFFF6D00),
                     strokeWidth: 2,
                   ),
                 );
@@ -96,7 +103,7 @@ class _SkillListView extends StatelessWidget {
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                    color: Color(0xFF07C160),
+                    color: Color(0xFFFF6D00),
                     strokeWidth: 2,
                   ),
                 ),
@@ -106,8 +113,6 @@ class _SkillListView extends StatelessWidget {
           final skill = state.skills[index];
           return Column(
             children: [
-              if (index == 0)
-                Container(color: Colors.white, height: 0), // 白色块起始
               SkillCard(
                 skill: skill,
                 onTap: () => _navigateToDetail(context, skill.id),
@@ -144,7 +149,7 @@ class _SkillListView extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFF07C160),
+                color: const Color(0xFFFF6D00),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: const Text(
@@ -164,5 +169,14 @@ class _SkillListView extends StatelessWidget {
         builder: (_) => SkillDetailPage(skillId: skillId),
       ),
     );
+  }
+
+  void _navigateToPublish(BuildContext context) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const SkillPublishPage()),
+    );
+    if (result == true && context.mounted) {
+      context.read<SkillListCubit>().loadSkills();
+    }
   }
 }

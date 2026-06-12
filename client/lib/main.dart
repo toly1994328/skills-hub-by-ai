@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fx_dio/fx_dio.dart';
 
 import 'skill/env/skill_host.dart';
-import 'skill/view/skill_list_page.dart';
+import 'skill/view/app_shell.dart';
 
 void main() {
   FxDio().register(const SkillHost());
@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       title: 'Skills Share',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterial3: false,
+        useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFEDEDED),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFFEDEDED),
@@ -31,10 +31,13 @@ class MyApp extends StatelessWidget {
           ),
           iconTheme: IconThemeData(color: Color(0xFF181818)),
         ),
+        listTileTheme: ListTileThemeData(
+          tileColor: Colors.white
+        ),
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
       ),
-      home: const SkillListPage(),
+      home: const AppShell(),
     );
   }
 }

@@ -96,7 +96,7 @@ def main():
         fail(f"种子文件不存在：{SEED_FILE}")
         sys.exit(1)
 
-    seed_data = json.loads(SEED_FILE.read_text(encoding="utf-8"))
+    seed_data = json.loads(SEED_FILE.read_text(encoding="utf-8-sig"))
     skills = seed_data.get("skills", [])
 
     if not skills:
@@ -107,12 +107,23 @@ def main():
     info(f"共 {len(skills)} 条技能数据，开始灌入...")
     print()
 
-    # 逐条创建
+    # 逐条创建（倒序插入，最新的在前）
     success = 0
     failed = 0
     created_ids = []
 
-    for i, skill in enumerate(skills, 1):
+    for i, skill in enumerate(reversed(skills), 1):
+        # 如果有 content_file 字段，读取文件内容替换 content
+        if "content_file" in skill:
+            content_path = SCRIPT_DIR / skill["content_file"]
+            if content_path.exists():
+                skill["content"] = content_path.read_text(encoding="utf-8")
+            else:
+                fail(f"  [{i}/{len(skills)}] {skill['name']} → 文件不存在: {content_path}")
+                failed += 1
+                continue
+            del skill["content_file"]
+        
         resp = post_json(f"{BASE_URL}/api/skills", skill)
         if resp.get("code") == 0:
             skill_id = resp["data"]["id"]
