@@ -3,70 +3,79 @@ import 'package:flutter/material.dart';
 
 import '../model/skill_summary.dart';
 
-class SkillCard extends StatelessWidget {
+class SkillCard extends StatefulWidget {
   final SkillSummary skill;
   final VoidCallback? onTap;
 
   const SkillCard({super.key, required this.skill, this.onTap});
 
   @override
+  State<SkillCard> createState() => _SkillCardState();
+}
+
+class _SkillCardState extends State<SkillCard> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildIcon(),
-              const SizedBox(width: 12),
-              Expanded(child: _buildContent(context)),
-            ],
-          ),
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap?.call();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        color: _pressed ? const Color(0xFFF5F5F5) : Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            _buildIcon(),
+            const SizedBox(width: 12),
+            Expanded(child: _buildContent()),
+            const Icon(Icons.chevron_right, color: Color(0xFFC7C7CC), size: 20),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildIcon() {
-    if (skill.iconUrl.isEmpty) {
+    if (widget.skill.iconUrl.isEmpty) {
       return Container(
-        width: 48,
-        height: 48,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(6),
         ),
-        child: const Icon(Icons.extension, color: Colors.grey),
+        child: const Icon(Icons.extension, color: Color(0xFF999999), size: 20),
       );
     }
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(6),
       child: CachedNetworkImage(
-        imageUrl: skill.iconUrl,
-        width: 48,
-        height: 48,
+        imageUrl: widget.skill.iconUrl,
+        width: 40,
+        height: 40,
         fit: BoxFit.cover,
         placeholder: (_, _) => Container(
-          width: 48,
-          height: 48,
-          color: Colors.grey[200],
-          child: const Icon(Icons.extension, color: Colors.grey),
+          width: 40,
+          height: 40,
+          color: const Color(0xFFF5F5F5),
         ),
         errorWidget: (_, _, _) => Container(
-          width: 48,
-          height: 48,
-          color: Colors.grey[200],
-          child: const Icon(Icons.broken_image, color: Colors.grey),
+          width: 40,
+          height: 40,
+          color: const Color(0xFFF5F5F5),
+          child: const Icon(Icons.extension, color: Color(0xFF999999), size: 20),
         ),
       ),
     );
   }
 
-  Widget _buildContent(BuildContext context) {
+  Widget _buildContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -74,8 +83,12 @@ class SkillCard extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                skill.name,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                widget.skill.name,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF181818),
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -84,56 +97,25 @@ class SkillCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(4),
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(3),
               ),
               child: Text(
-                'v${skill.version}',
-                style: TextStyle(fontSize: 11, color: Colors.blue[700]),
+                'v${widget.skill.version}',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF999999)),
               ),
             ),
           ],
         ),
-        if (skill.description.isNotEmpty) ...[
+        if (widget.skill.description.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(
-            skill.description,
-            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-            maxLines: 2,
+            widget.skill.description,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF666666)),
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ],
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            if (skill.author.isNotEmpty) ...[
-              Icon(Icons.person_outline, size: 14, color: Colors.grey[500]),
-              const SizedBox(width: 2),
-              Text(
-                skill.author,
-                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-              ),
-              const SizedBox(width: 12),
-            ],
-            Expanded(
-              child: Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: skill.tagList.take(3).map((tag) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    tag,
-                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                  ),
-                )).toList(),
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }

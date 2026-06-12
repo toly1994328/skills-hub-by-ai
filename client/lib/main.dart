@@ -16,8 +16,23 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Skills Share',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: false,
+        scaffoldBackgroundColor: const Color(0xFFEDEDED),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFEDEDED),
+          elevation: 0,
+          centerTitle: true,
+          titleTextStyle: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF181818),
+          ),
+          iconTheme: IconThemeData(color: Color(0xFF181818)),
+        ),
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
       ),
       home: const SkillListPage(),
     );
