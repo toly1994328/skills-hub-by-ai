@@ -106,6 +106,7 @@ docs/features/{模块}/{版本}/
 输出：`client/design.md`
 规范具体详见：#[[file:.kiro/skills/feature-designer/SKILL.md]]
 模块化拆分参考：#[[file:.kiro/skills/modular-design/SKILL.md]]
+网络请求使用技能#[[file:.kiro/skills/fx-dio-usage/SKILL.md]]
 前置参考文件：第 1 步产物的 analysis.md + 第 6 步产物的 api/doc/（接口文档）
 
 包含：
@@ -141,9 +142,8 @@ docs/features/{模块}/{版本}/
 ### 第 10 步：前端实现
 
 按 tasks.md 顺序实现。
-UI 风格规范：#[[file:.kiro/skills/flash-im-ui-style/SKILL.md]]
 构建验证规范：#[[file:.kiro/skills/flutter-build-verify/SKILL.md]]
-
+网络请求使用技能#[[file:.kiro/skills/fx-dio-usage/SKILL.md]]
 完成后必须执行全量构建验证（详见 flutter-build-verify 技能），零错误才能进入下一步。
 
 ### 第 11 步：前端测试

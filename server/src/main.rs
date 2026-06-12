@@ -1,4 +1,7 @@
+mod app_error;
+mod app_response;
 mod net_util;
+mod skill;
 
 use std::env;
 use std::net::SocketAddr;
@@ -11,7 +14,6 @@ use serde_json::{json, Value};
 use sqlx::MySqlPool;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
-use tracing_subscriber;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -40,7 +42,13 @@ async fn main() {
     let app = Router::new()
         .route("/", get(health))
         .route("/date", get(query_date))
-        .layer(CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any))
+        .merge(skill::skill_router::skill_routes())
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any),
+        )
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
@@ -50,9 +58,12 @@ async fn main() {
     let port = listener.local_addr().unwrap().port();
     println!("Server listening on {}", listener.local_addr().unwrap());
     println!("LAN access: http://{}:{}", local_ip, port);
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .unwrap();
 }
 
 async fn health() -> Json<Value> {
