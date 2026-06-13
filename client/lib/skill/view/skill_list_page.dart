@@ -5,6 +5,7 @@ import '../cubit/skill_list_cubit.dart';
 import '../cubit/skill_list_state.dart';
 import 'skill_card.dart';
 import 'skill_detail_page.dart';
+import 'skill_publish_page.dart';
 
 class SkillListPage extends StatelessWidget {
   const SkillListPage({super.key});
@@ -24,19 +25,49 @@ class _SkillListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Skills')),
+      backgroundColor: const Color(0xFFEDEDED),
+      appBar: AppBar(
+        title: const Text(
+          '技能广场',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF181818),
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: Color(0xFF181818)),
+            onPressed: () => _navigateToPublish(context),
+          ),
+        ],
+      ),
       body: BlocBuilder<SkillListCubit, SkillListState>(
         builder: (context, state) {
           switch (state.status) {
             case SkillListStatus.initial:
             case SkillListStatus.loading:
               if (state.skills.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFFFF6D00),
+                    strokeWidth: 2,
+                  ),
+                );
               }
               return _buildList(context, state);
             case SkillListStatus.loaded:
               if (state.skills.isEmpty) {
-                return const Center(child: Text('暂无技能'));
+                return const Center(
+                  child: Text(
+                    '暂无技能',
+                    style: TextStyle(fontSize: 15, color: Color(0xFF999999)),
+                  ),
+                );
               }
               return _buildList(context, state);
             case SkillListStatus.error:
@@ -54,25 +85,41 @@ class _SkillListView extends StatelessWidget {
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         if (notification is ScrollEndNotification &&
-            notification.metrics.pixels >= notification.metrics.maxScrollExtent - 200) {
+            notification.metrics.pixels >=
+                notification.metrics.maxScrollExtent - 200) {
           context.read<SkillListCubit>().loadMore();
         }
         return false;
       },
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.only(top: 8),
         itemCount: state.skills.length + (state.hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= state.skills.length) {
             return const Padding(
               padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Color(0xFFFF6D00),
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
             );
           }
           final skill = state.skills[index];
-          return SkillCard(
-            skill: skill,
-            onTap: () => _navigateToDetail(context, skill.id),
+          return Column(
+            children: [
+              SkillCard(
+                skill: skill,
+                onTap: () => _navigateToDetail(context, skill.id),
+              ),
+              if (index < state.skills.length - 1)
+                Container(height: 6, color: const Color(0xFFF5F5F5)),
+            ],
           );
         },
       ),
@@ -84,11 +131,24 @@ class _SkillListView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(msg, style: TextStyle(color: Colors.grey[600])),
+          Text(
+            msg,
+            style: const TextStyle(fontSize: 15, color: Color(0xFF999999)),
+          ),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () => context.read<SkillListCubit>().loadSkills(),
-            child: const Text('重试'),
+          GestureDetector(
+            onTap: () => context.read<SkillListCubit>().loadSkills(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF6D00),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text(
+                '重试',
+                style: TextStyle(fontSize: 15, color: Colors.white),
+              ),
+            ),
           ),
         ],
       ),
@@ -101,5 +161,14 @@ class _SkillListView extends StatelessWidget {
         builder: (_) => SkillDetailPage(skillId: skillId),
       ),
     );
+  }
+
+  void _navigateToPublish(BuildContext context) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const SkillPublishPage()),
+    );
+    if (result == true && context.mounted) {
+      context.read<SkillListCubit>().loadSkills();
+    }
   }
 }

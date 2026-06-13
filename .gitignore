@@ -1,6 +1,9 @@
 # 参考项目
 docs/ref/
 
+# 种子数据（本地技能文件）
+scripts/server/data/
+
 # Rust
 server/target/
 

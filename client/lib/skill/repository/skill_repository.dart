@@ -1,6 +1,7 @@
 import 'package:fx_dio/fx_dio.dart';
 
 import '../env/skill_host.dart';
+import '../model/create_skill_request.dart';
 import '../model/skill_detail.dart';
 import '../model/skill_summary.dart';
 
@@ -28,6 +29,15 @@ class SkillRepository with SkillHostMixin {
     return host.get<SkillDetail>(
       '/skills/$id',
       convertor: (data) => SkillDetail.fromApi(data['data']),
+    );
+  }
+
+  /// 创建技能
+  Future<ApiRet<int>> create(CreateSkillRequest request) {
+    return host.post<int>(
+      '/skills',
+      data: request.toJson(),
+      convertor: (data) => data['data']['id'] as int,
     );
   }
 }

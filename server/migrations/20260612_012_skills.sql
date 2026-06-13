@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS skills (
     id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     name        VARCHAR(100)    NOT NULL COMMENT '技能名称',
-    description VARCHAR(500)    NOT NULL DEFAULT '' COMMENT '简短描述',
+    description VARCHAR(5000)    NOT NULL DEFAULT '' COMMENT '简短描述',
     author      VARCHAR(100)    NOT NULL DEFAULT '' COMMENT '作者',
     tags        VARCHAR(500)    NOT NULL DEFAULT '' COMMENT '标签，逗号分隔',
     icon_url    VARCHAR(500)    NOT NULL DEFAULT '' COMMENT '图标URL',
