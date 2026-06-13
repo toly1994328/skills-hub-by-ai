@@ -11,8 +11,11 @@ tags: [技能管理, 前端, Flutter, 发布, UI优化]
 
 ## 1. 目标
 
-- 新增技能发布页（表单 + Markdown 文件选择/手动输入）
-- 内容输入支持 Markdown 实时预览
+- 新增技能发布页（表单 + Markdown 文件选择/手动输入 + 实时预览）
+- 微信简洁风 UI 全面改造（橙色品牌色 #FF6D00）
+- 底部导航栏（首页技能广场 + 我的）
+- 详情页 SliverAppBar 折叠头部 + Tab 面板 + 下载/复制按钮
+- Markdown 代码块语法高亮（flutter_highlighter）
 - 列表页增加发布入口按钮
 - 发布成功后返回列表并刷新
 
@@ -78,17 +81,23 @@ client/lib/skill/
 │   ├── skill_publish_cubit.dart     # 发布页状态管理
 │   └── skill_publish_state.dart     # 发布页状态定义
 └── view/
+    ├── app_shell.dart               # 底部导航 + PageView
+    ├── mine_page.dart               # 我的页面
     └── skill_publish_page.dart      # 发布表单页
 ```
 
 ### 修改文件
 
 ```
-client/lib/skill/
-├── repository/
-│   └── skill_repository.dart        # 新增 create 方法
-└── view/
-    └── skill_list_page.dart         # AppBar 加发布按钮
+client/lib/
+├── main.dart                        # 入口改为 AppShell
+└── skill/
+    ├── repository/
+    │   └── skill_repository.dart    # 新增 create 方法
+    └── view/
+        ├── skill_list_page.dart     # AppBar 加发布按钮 + 标题改"技能广场"
+        ├── skill_card.dart          # 三行布局 + 橙色标签 + 时间
+        └── skill_detail_page.dart   # SliverAppBar + Tab面板 + 代码高亮
 ```
 
 ### 职责划分
@@ -109,7 +118,9 @@ client/lib/skill/
 
 | 依赖 | 用途 | 已有/需新增 |
 |------|------|------------|
-| file_picker | 选择本地文件 | 🆕 需新增 |
+| file_picker ^8.0.0 | 选择本地文件 | 🆕 需新增 |
+| flutter_highlighter ^0.1.1 | 代码块语法高亮 | 🆕 需新增 |
+| markdown ^7.2.2 | Markdown AST（builder 需要） | 🆕 需新增 |
 
 ## 6. 验收标准
 

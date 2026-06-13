@@ -11,14 +11,17 @@
 
 ## 执行顺序
 
-1. ⬜ 任务 1 — 添加 file_picker 依赖
-2. ⬜ 任务 2 — CreateSkillRequest 模型
-3. ⬜ 任务 3 — SkillRepository 新增 create 方法
-4. ⬜ 任务 4 — SkillPublishState 状态定义
-5. ⬜ 任务 5 — SkillPublishCubit 逻辑
-6. ⬜ 任务 6 — SkillPublishPage 表单页
-7. ⬜ 任务 7 — SkillListPage 加发布按钮
-8. ⬜ 任务 8 — 编译验证
+1. ✅ 任务 1 — 添加 file_picker 依赖
+2. ✅ 任务 2 — CreateSkillRequest 模型
+3. ✅ 任务 3 — SkillRepository 新增 create 方法
+4. ✅ 任务 4 — SkillPublishState 状态定义
+5. ✅ 任务 5 — SkillPublishCubit 逻辑
+6. ✅ 任务 6 — SkillPublishPage 表单页
+7. ✅ 任务 7 — SkillListPage 加发布按钮
+8. ✅ 任务 8 — 编译验证
+9. ✅ 任务 9 — 底部导航栏 AppShell + MinePage（追加）
+10. ✅ 任务 10 — 详情页 SliverAppBar + Tab 面板 + 代码高亮（追加）
+11. ✅ 任务 11 — UI 微信简洁风改造 + 橙色品牌色（追加）
 
 ---
 
@@ -168,7 +171,7 @@ publish 逻辑：
 
 ### 6.4 发布按钮 `⬜`
 
-底部绿色按钮（#07C160），宽度撑满（左右 16px 边距），高度 44px。
+底部橙色按钮（#FF6D00），宽度撑满（左右 16px 边距），高度 44px。
 
 ### 6.5 状态响应 `⬜`
 
