@@ -340,6 +340,9 @@ class _PublishViewState extends State<_PublishView> with SingleTickerProviderSta
 class _CodeBlockBuilder extends MarkdownElementBuilder {
   @override
   Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    if (element.attributes['class'] == null && !element.textContent.contains('\n')) {
+      return null;
+    }
     final code = element.textContent;
     final language = element.attributes['class']?.replaceFirst('language-', '') ?? '';
     return Container(

@@ -28,7 +28,7 @@ class _SkillListView extends StatelessWidget {
       backgroundColor: const Color(0xFFEDEDED),
       appBar: AppBar(
         title: const Text(
-          'Skills',
+          '技能广场',
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
@@ -36,7 +36,7 @@ class _SkillListView extends StatelessWidget {
           ),
         ),
         centerTitle: true,
-        backgroundColor: const Color(0xFFEDEDED),
+        backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
         actions: [
@@ -118,15 +118,7 @@ class _SkillListView extends StatelessWidget {
                 onTap: () => _navigateToDetail(context, skill.id),
               ),
               if (index < state.skills.length - 1)
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.only(left: 68),
-                  child: const Divider(
-                    height: 0.5,
-                    thickness: 0.5,
-                    color: Color(0xFFE5E5E5),
-                  ),
-                ),
+                Container(height: 6, color: const Color(0xFFF5F5F5)),
             ],
           );
         },

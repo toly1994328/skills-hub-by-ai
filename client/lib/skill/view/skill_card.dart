@@ -30,11 +30,11 @@ class _SkillCardState extends State<SkillCard> {
         color: _pressed ? const Color(0xFFF5F5F5) : Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildIcon(),
             const SizedBox(width: 12),
             Expanded(child: _buildContent()),
-            const Icon(Icons.chevron_right, color: Color(0xFFC7C7CC), size: 20),
           ],
         ),
       ),
@@ -79,6 +79,7 @@ class _SkillCardState extends State<SkillCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 第一行：名称 + 右侧更新时间
         Row(
           children: [
             Expanded(
@@ -93,30 +94,66 @@ class _SkillCardState extends State<SkillCard> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(3),
-              ),
-              child: Text(
-                'v${widget.skill.version}',
-                style: const TextStyle(fontSize: 11, color: Color(0xFF999999)),
-              ),
+            Text(
+              _formatTime(widget.skill.updatedAt),
+              style: const TextStyle(fontSize: 11, color: Color(0xFF999999)),
             ),
           ],
         ),
+        // 第二行：描述（支持两行）
         if (widget.skill.description.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(
             widget.skill.description,
             style: const TextStyle(fontSize: 13, color: Color(0xFF666666)),
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
         ],
+        // 第三行：版本号标签 + tags 横向排列
+        const SizedBox(height: 6),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF6D00).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: Text(
+                  'v${widget.skill.version}',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFFFF6D00)),
+                ),
+              ),
+              ...widget.skill.tagList.map((tag) => Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: Text(
+                    tag,
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF666666)),
+                  ),
+                ),
+              )),
+            ],
+          ),
+        ),
       ],
     );
+  }
+
+  String _formatTime(String time) {
+    if (time.isEmpty) return '';
+    // "2026-06-12 10:00:00" -> "06-12 10:00"
+    if (time.length >= 16) {
+      return time.substring(5, 16);
+    }
+    return time;
   }
 }

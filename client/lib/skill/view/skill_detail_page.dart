@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_highlighter/flutter_highlighter.dart';
 import 'package:flutter_highlighter/themes/github.dart';
@@ -33,20 +34,6 @@ class _SkillDetailView extends StatelessWidget {
       builder: (context, state) {
         return Scaffold(
           backgroundColor: const Color(0xFFEDEDED),
-          appBar: AppBar(
-            title: Text(
-              state.skill?.name ?? '',
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Color(0xFF181818)),
-            ),
-            centerTitle: true,
-            backgroundColor: const Color(0xFFEDEDED),
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, size: 18, color: Color(0xFF181818)),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
           body: _buildBody(context, state),
         );
       },
@@ -70,68 +57,220 @@ class _SkillDetailView extends StatelessWidget {
   }
 
   Widget _buildDetail(BuildContext context, SkillDetail skill) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            color: Colors.white,
-            padding: const EdgeInsets.all(16),
-            child: _buildHeader(skill),
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          pinned: true,
+          expandedHeight: 220,
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 0.5,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, size: 18, color: Color(0xFF181818)),
+            onPressed: () => Navigator.of(context).pop(),
           ),
-          const SizedBox(height: 8),
-          if (skill.tagList.isNotEmpty || skill.sourceUrl.isNotEmpty || skill.downloadUrl.isNotEmpty)
-            Container(
-              width: double.infinity,
-              color: Colors.white,
-              padding: const EdgeInsets.all(16),
-              child: _buildMetaSection(skill),
-            ),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            color: Colors.white,
-            padding: const EdgeInsets.all(16),
-            child: _buildMarkdown(skill.content),
+          flexibleSpace: LayoutBuilder(
+            builder: (context, constraints) {
+              final top = constraints.biggest.height;
+              final collapsedHeight = kToolbarHeight + MediaQuery.of(context).padding.top;
+              final expandRatio = ((top - collapsedHeight) / (220 - collapsedHeight)).clamp(0.0, 1.0);
+              return FlexibleSpaceBar(
+                centerTitle: true,
+                title: expandRatio < 0.3
+                    ? Text(
+                        skill.name,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF181818)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    : null,
+                background: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 56, left: 24, right: 24, bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 第一行：logo + 名称 + 版本作者
+                        Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: skill.iconUrl.isNotEmpty
+                                  ? Image.network(
+                                      skill.iconUrl,
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => _iconPlaceholder(),
+                                    )
+                                  : _iconPlaceholder(),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    skill.name,
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF181818)),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFF6D00).withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(3),
+                                        ),
+                                        child: Text('v${skill.version}', style: const TextStyle(fontSize: 11, color: Color(0xFFFF6D00))),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(skill.author, style: const TextStyle(fontSize: 13, color: Color(0xFF666666))),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        // 标签
+                        if (skill.tagList.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: skill.tagList.map((tag) => Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(3)),
+                                  child: Text(tag, style: const TextStyle(fontSize: 11, color: Color(0xFF666666))),
+                                ),
+                              )).toList(),
+                            ),
+                          ),
+                        ],
+                        // 来源链接
+                        if (skill.sourceUrl.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () => _openUrl(skill.sourceUrl),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.link, size: 14, color: Color(0xFF576B95)),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    skill.sourceUrl,
+                                    style: const TextStyle(fontSize: 12, color: Color(0xFF576B95)),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        // 按钮
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (skill.downloadUrl.isNotEmpty) _openUrl(skill.downloadUrl);
+                                },
+                                child: Container(
+                                  height: 34,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: const Color(0xFFFF6D00)),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Center(
+                                    child: Text('下载技能', style: TextStyle(fontSize: 14, color: Color(0xFFFF6D00))),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  Clipboard.setData(ClipboardData(text: skill.content));
+                                },
+                                child: Container(
+                                  height: 34,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: const Color(0xFFFF6D00)),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Center(
+                                    child: Text('复制全文', style: TextStyle(fontSize: 14, color: Color(0xFFFF6D00))),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(SkillDetail skill) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (skill.iconUrl.isNotEmpty)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: Image.network(
-              skill.iconUrl,
-              width: 40,
-              height: 40,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(6)),
-                child: const Icon(Icons.extension, size: 20, color: Color(0xFF999999)),
-              ),
-            ),
-          ),
-        if (skill.iconUrl.isNotEmpty) const SizedBox(width: 12),
-        Expanded(
+        ),
+        SliverToBoxAdapter(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(skill.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Color(0xFF181818))),
-              const SizedBox(height: 4),
-              Text('v${skill.version}  ·  ${skill.author}', style: const TextStyle(fontSize: 13, color: Color(0xFF666666))),
-              if (skill.description.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(skill.description, style: const TextStyle(fontSize: 13, color: Color(0xFF999999))),
-              ],
+              const SizedBox(height: 8),
+              // 描述
+              if (skill.description.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  color: Colors.white,
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    skill.description,
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF666666), height: 1.5),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              // Tab 面板
+              Container(
+                width: double.infinity,
+                color: Colors.white,
+                child: Column(
+                  children: [
+                    // Tab 栏
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: const BoxDecoration(
+                        border: Border(bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5)),
+                      ),
+                      child: Row(
+                        children: [
+                          _buildTab('SKILL.md', true),
+                          const SizedBox(width: 24),
+                          _buildTab('文件列表', false),
+                          const SizedBox(width: 24),
+                          _buildTab('中文', false),
+                        ],
+                      ),
+                    ),
+                    // 内容区
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: _buildMarkdown(skill.content),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
             ],
           ),
         ),
@@ -139,44 +278,33 @@ class _SkillDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildMetaSection(SkillDetail skill) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (skill.tagList.isNotEmpty)
-          Wrap(
-            spacing: 6, runSpacing: 6,
-            children: skill.tagList.map((tag) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(3)),
-              child: Text(tag, style: const TextStyle(fontSize: 11, color: Color(0xFF666666))),
-            )).toList(),
+  Widget _buildTab(String label, bool active) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: active ? const Color(0xFFFF6D00) : Colors.transparent,
+            width: 2,
           ),
-        if ((skill.sourceUrl.isNotEmpty || skill.downloadUrl.isNotEmpty) && skill.tagList.isNotEmpty)
-          const SizedBox(height: 12),
-        if (skill.sourceUrl.isNotEmpty) _buildLinkItem(Icons.open_in_new, '来源', skill.sourceUrl),
-        if (skill.sourceUrl.isNotEmpty && skill.downloadUrl.isNotEmpty)
-          const Padding(padding: EdgeInsets.only(left: 32), child: Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE5E5E5))),
-        if (skill.downloadUrl.isNotEmpty) _buildLinkItem(Icons.download_outlined, '下载', skill.downloadUrl),
-      ],
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+          color: active ? const Color(0xFFFF6D00) : const Color(0xFF666666),
+        ),
+      ),
     );
   }
 
-  Widget _buildLinkItem(IconData icon, String label, String url) {
-    return GestureDetector(
-      onTap: () => _openUrl(url),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: const Color(0xFF576B95)),
-            const SizedBox(width: 8),
-            Text(label, style: const TextStyle(fontSize: 15, color: Color(0xFF576B95))),
-            const Spacer(),
-            const Icon(Icons.chevron_right, size: 18, color: Color(0xFFC7C7CC)),
-          ],
-        ),
-      ),
+  Widget _iconPlaceholder() {
+    return Container(
+      width: 40, height: 40,
+      decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(8)),
+      child: const Icon(Icons.extension, size: 20, color: Color(0xFF999999)),
     );
   }
 
@@ -184,8 +312,10 @@ class _SkillDetailView extends StatelessWidget {
     if (content.isEmpty) {
       return const Text('暂无说明文档', style: TextStyle(fontSize: 15, color: Color(0xFF999999)));
     }
+    // 剥离 YAML front-matter
+    final stripped = _stripFrontMatter(content);
     return MarkdownBody(
-      data: content,
+      data: stripped,
       builders: {'code': _CodeBlockBuilder()},
       styleSheet: MarkdownStyleSheet(
         h1: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF181818), height: 1.5),
@@ -193,7 +323,7 @@ class _SkillDetailView extends StatelessWidget {
         h3: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF181818), height: 1.5),
         p: const TextStyle(fontSize: 15, color: Color(0xFF181818), height: 1.6),
         listBullet: const TextStyle(fontSize: 15, color: Color(0xFF181818), height: 1.6),
-        code: TextStyle(fontSize: 13, color: const Color(0xFF181818), backgroundColor: const Color(0xFFF5F5F5), fontFamily: 'monospace'),
+        code: TextStyle(fontSize: 13, color: const Color(0xFFFF6D00), backgroundColor: const Color(0xFFFF6D00).withValues(alpha: 0.1), fontFamily: 'monospace'),
         codeblockDecoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(6)),
         codeblockPadding: const EdgeInsets.all(12),
         blockquoteDecoration: BoxDecoration(border: Border(left: BorderSide(color: const Color(0xFFFF6D00), width: 3))),
@@ -211,6 +341,17 @@ class _SkillDetailView extends StatelessWidget {
     );
   }
 
+  String _stripFrontMatter(String content) {
+    final trimmed = content.trimLeft();
+    if (!trimmed.startsWith('---')) return content;
+    final endIndex = trimmed.indexOf('---', 3);
+    if (endIndex == -1) return content;
+    // 提取 front-matter 内容，包装成 yaml 代码块
+    final frontMatter = trimmed.substring(3, endIndex).trim();
+    final body = trimmed.substring(endIndex + 3).trimLeft();
+    return '```yaml\n$frontMatter\n```\n\n$body';
+  }
+
   Future<void> _openUrl(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
@@ -222,6 +363,10 @@ class _SkillDetailView extends StatelessWidget {
 class _CodeBlockBuilder extends MarkdownElementBuilder {
   @override
   Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    // 只处理代码块（父元素是 pre），行内代码交给默认样式
+    if (element.attributes['class'] == null && !element.textContent.contains('\n')) {
+      return null;
+    }
     final code = element.textContent;
     final language = element.attributes['class']?.replaceFirst('language-', '') ?? '';
     return Container(
