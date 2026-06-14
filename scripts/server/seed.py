@@ -1,17 +1,20 @@
 """
-Skills Share — 种子数据灌入脚本
+Skills Share — 种子数据灌入脚本（v0.0.3）
 
-通过 HTTP 接口灌入 seed.json 中的数据，同时验证接口可用性。
+遍历 data/ 下所有含 SKILL.md 的文件夹，临时压缩为 zip，上传到服务端。
 
 用法：
-    python scripts/server/seed.py              # 使用默认地址 http://localhost:3000
-    python seed.py 192.168.1.5  # 指定服务器 IP
+    python seed.py              # 默认 localhost:3000
+    python seed.py 192.168.1.5  # 指定 IP
 """
 
+import io
 import json
+import os
+import subprocess
 import sys
-import urllib.request
-import urllib.error
+import tempfile
+import zipfile
 from pathlib import Path
 
 # ─── 颜色 ───
@@ -42,145 +45,124 @@ def fail(msg: str):
 # ─── 配置 ───
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-SEED_FILE = SCRIPT_DIR / "seed.json"
+DATA_DIR = SCRIPT_DIR / "data"
 
 HOST = sys.argv[1] if len(sys.argv) > 1 else "localhost"
 BASE_URL = f"http://{HOST}:3000"
 
+# 排除目录
+EXCLUDE_DIRS = {".git", ".github", "node_modules", "__pycache__", ".claude-plugin"}
 
-def post_json(url: str, data: dict) -> dict:
-    """发送 POST 请求"""
-    body = json.dumps(data).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=body,
-        headers={"Content-Type": "application/json"},
-        method="POST",
+
+def find_skill_folders() -> list[Path]:
+    """遍历 data/ 下所有含 SKILL.md 的文件夹"""
+    skill_folders: list[Path] = []
+    for root, dirs, files in os.walk(DATA_DIR):
+        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
+        if "SKILL.md" in files:
+            skill_folders.append(Path(root))
+    # 按路径排序
+    skill_folders.sort(key=lambda p: p.as_posix())
+    return skill_folders
+
+
+def zip_folder(folder: Path) -> str:
+    """将文件夹打包为临时 zip，返回 zip 文件路径"""
+    tmp = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
+    tmp.close()
+
+    with zipfile.ZipFile(tmp.name, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for root, dirs, files in os.walk(folder):
+            dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
+            for file in files:
+                file_path = Path(root) / file
+                arcname = file_path.relative_to(folder).as_posix()
+                zf.write(file_path, arcname)
+
+    return tmp.name
+
+
+def upload_zip(zip_path: str) -> dict:
+    """上传 zip 文件到服务端"""
+    result = subprocess.run(
+        ["curl.exe", "-s", "-w", "\n%{http_code}", "-X", "POST",
+         "-H", "Content-Type: application/zip",
+         "--data-binary", f"@{zip_path}",
+         f"{BASE_URL}/api/skills/upload"],
+        capture_output=True, text=True, encoding="utf-8"
     )
-    try:
-        with urllib.request.urlopen(req) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        return json.loads(e.read().decode("utf-8"))
+    output = result.stdout.strip()
+    parts = output.rsplit("\n", 1)
+    body = parts[0] if len(parts) == 2 else ""
+    status = int(parts[-1]) if parts else 0
 
+    resp = {}
+    if body:
+        try:
+            resp = json.loads(body)
+        except json.JSONDecodeError:
+            pass
 
-def get_json(url: str) -> dict:
-    """发送 GET 请求"""
-    req = urllib.request.Request(url)
-    try:
-        with urllib.request.urlopen(req) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        return json.loads(e.read().decode("utf-8"))
+    return {"status": status, "body": body, "resp": resp}
 
 
 def main():
     print()
-    info(f"━━━ 灌入种子数据 ━━━")
-    info(f"服务器地址：{BASE_URL}")
+    info("━━━ 种子数据灌入 ━━━")
+    info(f"服务器：{BASE_URL}")
+    info(f"数据目录：{DATA_DIR}")
     print()
 
-    # 检查服务是否可用
+    # 检查服务可用
     try:
-        health = get_json(f"{BASE_URL}/")
-        if health.get("status") != "ok":
-            fail("服务器健康检查失败")
+        result = subprocess.run(
+            ["curl.exe", "-s", f"{BASE_URL}/"],
+            capture_output=True, text=True, encoding="utf-8"
+        )
+        if '"status":"ok"' not in result.stdout:
+            fail("服务器不可用")
             sys.exit(1)
         ok("服务器连接正常")
     except Exception as e:
-        fail(f"无法连接服务器：{e}")
+        fail(f"无法连接：{e}")
         sys.exit(1)
 
-    # 读取种子数据
-    if not SEED_FILE.exists():
-        fail(f"种子文件不存在：{SEED_FILE}")
-        sys.exit(1)
-
-    seed_data = json.loads(SEED_FILE.read_text(encoding="utf-8-sig"))
-    skills = seed_data.get("skills", [])
-
-    if not skills:
-        warn("种子数据为空")
+    # 查找所有技能文件夹
+    folders = find_skill_folders()
+    if not folders:
+        warn("未找到任何含 SKILL.md 的文件夹")
         return
 
-    print()
-    info(f"共 {len(skills)} 条技能数据，开始灌入...")
+    info(f"找到 {len(folders)} 个技能文件夹")
     print()
 
-    # 逐条创建（倒序插入，最新的在前）
+    # 倒序上传（最新的排前面）
     success = 0
     failed = 0
-    created_ids = []
 
-    for i, skill in enumerate(reversed(skills), 1):
-        # 如果有 content_file 字段，读取文件内容替换 content
-        if "content_file" in skill:
-            content_path = SCRIPT_DIR / skill["content_file"]
-            if content_path.exists():
-                skill["content"] = content_path.read_text(encoding="utf-8")
-            else:
-                fail(f"  [{i}/{len(skills)}] {skill['name']} → 文件不存在: {content_path}")
-                failed += 1
-                continue
-            del skill["content_file"]
-        
-        resp = post_json(f"{BASE_URL}/api/skills", skill)
-        if resp.get("code") == 0:
-            skill_id = resp["data"]["id"]
-            created_ids.append(skill_id)
+    for i, folder in enumerate(reversed(folders), 1):
+        rel_path = folder.relative_to(DATA_DIR).as_posix()
+
+        # 打 zip
+        zip_path = zip_folder(folder)
+
+        # 上传
+        r = upload_zip(zip_path)
+
+        # 删临时文件
+        os.unlink(zip_path)
+
+        if r["status"] == 200 and r["resp"].get("code") == 0:
+            data = r["resp"].get("data", {})
+            ok(f"  [{i}/{len(folders)}] {rel_path} → id={data.get('id')}, files={data.get('file_count')}")
             success += 1
-            ok(f"  [{i}/{len(skills)}] {skill['name']} → id={skill_id}")
         else:
+            msg = r["resp"].get("message", r["body"][:80])
+            fail(f"  [{i}/{len(folders)}] {rel_path} → {msg}")
             failed += 1
-            fail(f"  [{i}/{len(skills)}] {skill['name']} → {resp.get('message')}")
 
     print()
-    info(f"灌入完成：{success} 成功，{failed} 失败")
-
-    # 验证列表接口
-    print()
-    info("━━━ 验证接口 ━━━")
-    print()
-
-    # 验证列表
-    list_resp = get_json(f"{BASE_URL}/api/skills?page=1&page_size=10")
-    if list_resp.get("code") == 0:
-        total = list_resp["data"]["total"]
-        list_len = len(list_resp["data"]["list"])
-        ok(f"GET /api/skills → total={total}, 本页={list_len} 条")
-
-        # 验证列表不含 content
-        if list_resp["data"]["list"]:
-            first = list_resp["data"]["list"][0]
-            if "content" not in first:
-                ok("  列表响应不含 content 字段 ✓")
-            else:
-                warn("  列表响应包含了 content 字段 ✗")
-    else:
-        fail(f"GET /api/skills 失败：{list_resp.get('message')}")
-
-    # 验证详情
-    if created_ids:
-        detail_resp = get_json(f"{BASE_URL}/api/skills/{created_ids[0]}")
-        if detail_resp.get("code") == 0:
-            has_content = "content" in detail_resp["data"] and detail_resp["data"]["content"]
-            ok(f"GET /api/skills/{created_ids[0]} → name={detail_resp['data']['name']}")
-            if has_content:
-                ok("  详情响应包含 content 字段 ✓")
-            else:
-                warn("  详情响应缺少 content 字段 ✗")
-        else:
-            fail(f"GET /api/skills/{created_ids[0]} 失败：{detail_resp.get('message')}")
-
-    # 验证 404
-    resp_404 = get_json(f"{BASE_URL}/api/skills/99999")
-    if resp_404.get("code") == 404:
-        ok("GET /api/skills/99999 → 404 ✓")
-    else:
-        warn(f"GET /api/skills/99999 → 预期 404，实际 code={resp_404.get('code')}")
-
-    print()
-    ok("━━━ 全部验证完成 ━━━")
+    info(f"完成：{success} 成功，{failed} 失败（共 {len(folders)} 个）")
     print()
 
 

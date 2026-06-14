@@ -1,12 +1,17 @@
 # Node
 node_modules/
 package-lock.json
+package.json
 
 # 参考项目
 docs/ref/
 
 # 种子数据（本地技能文件）
 scripts/server/data/
+scripts/server/__pycache__/
+
+# 技能文件存储
+server/storage/
 
 # Rust
 server/target/
