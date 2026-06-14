@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../cubit/skill_detail_cubit.dart';
 import '../cubit/skill_detail_state.dart';
 import '../model/skill_detail.dart';
+import 'skill_files_view.dart';
 
 class SkillDetailPage extends StatelessWidget {
   final int skillId;
@@ -200,7 +201,7 @@ class _SkillDetailView extends StatelessWidget {
                             Expanded(
                               child: GestureDetector(
                                 onTap: () {
-                                  Clipboard.setData(ClipboardData(text: skill.content));
+                                  Clipboard.setData(ClipboardData(text: skill.entryContent));
                                 },
                                 child: Container(
                                   height: 34,
@@ -241,33 +242,46 @@ class _SkillDetailView extends StatelessWidget {
                 ),
               const SizedBox(height: 8),
               // Tab 面板
-              Container(
-                width: double.infinity,
-                color: Colors.white,
-                child: Column(
-                  children: [
-                    // Tab 栏
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: const BoxDecoration(
-                        border: Border(bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5)),
+              DefaultTabController(
+                length: 2,
+                child: Container(
+                  width: double.infinity,
+                  color: Colors.white,
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: const BoxDecoration(
+                          border: Border(bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5)),
+                        ),
+                        child: const TabBar(
+                          labelColor: Color(0xFFFF6D00),
+                          unselectedLabelColor: Color(0xFF666666),
+                          indicatorColor: Color(0xFFFF6D00),
+                          indicatorSize: TabBarIndicatorSize.label,
+                          labelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          unselectedLabelStyle: TextStyle(fontSize: 14),
+                          dividerHeight: 0,
+                          tabs: [
+                            Tab(text: 'SKILL.md'),
+                            Tab(text: '文件列表'),
+                          ],
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          _buildTab('SKILL.md', true),
-                          const SizedBox(width: 24),
-                          _buildTab('文件列表', false),
-                          const SizedBox(width: 24),
-                          _buildTab('中文', false),
-                        ],
+                      SizedBox(
+                        height: 500,
+                        child: TabBarView(
+                          children: [
+                            SingleChildScrollView(
+                              padding: const EdgeInsets.all(16),
+                              child: _buildMarkdown(skill.entryContent),
+                            ),
+                            SkillFilesView(skillId: skill.id),
+                          ],
+                        ),
                       ),
-                    ),
-                    // 内容区
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: _buildMarkdown(skill.content),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -278,27 +292,6 @@ class _SkillDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildTab(String label, bool active) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: active ? const Color(0xFFFF6D00) : Colors.transparent,
-            width: 2,
-          ),
-        ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-          color: active ? const Color(0xFFFF6D00) : const Color(0xFF666666),
-        ),
-      ),
-    );
-  }
 
   Widget _iconPlaceholder() {
     return Container(

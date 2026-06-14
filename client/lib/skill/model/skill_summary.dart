@@ -8,6 +8,8 @@ class SkillSummary {
   final String sourceUrl;
   final String version;
   final String downloadUrl;
+  final int fileCount;
+  final int totalSize;
   final String createdAt;
   final String updatedAt;
 
@@ -21,6 +23,8 @@ class SkillSummary {
     this.sourceUrl = '',
     this.version = '',
     this.downloadUrl = '',
+    this.fileCount = 0,
+    this.totalSize = 0,
     this.createdAt = '',
     this.updatedAt = '',
   });
@@ -35,6 +39,8 @@ class SkillSummary {
     sourceUrl: map['source_url'] ?? '',
     version: map['version'] ?? '',
     downloadUrl: map['download_url'] ?? '',
+    fileCount: map['file_count'] ?? 0,
+    totalSize: map['total_size'] ?? 0,
     createdAt: map['created_at'] ?? '',
     updatedAt: map['updated_at'] ?? '',
   );

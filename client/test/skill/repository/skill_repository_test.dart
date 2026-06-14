@@ -43,7 +43,7 @@ void main() {
       expect(ret.success, isTrue);
       expect(ret.data.id, id);
       expect(ret.data.name, isNotEmpty);
-      expect(ret.data.content, isNotEmpty);
+      expect(ret.data.entryContent, isNotEmpty);
     });
 
     test('不存在的 ID 返回失败', () async {

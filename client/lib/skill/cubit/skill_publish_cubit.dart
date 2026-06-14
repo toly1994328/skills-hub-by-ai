@@ -1,6 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../model/create_skill_request.dart';
 import '../repository/skill_repository.dart';
 import 'skill_publish_state.dart';
 
@@ -9,25 +10,18 @@ class SkillPublishCubit extends Cubit<SkillPublishState> {
 
   SkillPublishCubit() : super(const SkillPublishState());
 
-  Future<void> publish(CreateSkillRequest request) async {
-    if (request.name.trim().isEmpty) {
+  Future<void> upload(List<int> zipBytes) async {
+    if (zipBytes.isEmpty) {
       emit(state.copyWith(
         status: SkillPublishStatus.error,
-        errorMsg: '名称不能为空',
-      ));
-      return;
-    }
-    if (request.content.trim().isEmpty) {
-      emit(state.copyWith(
-        status: SkillPublishStatus.error,
-        errorMsg: '内容不能为空',
+        errorMsg: '请选择 zip 文件',
       ));
       return;
     }
 
     emit(state.copyWith(status: SkillPublishStatus.submitting));
 
-    final ret = await _repo.create(request);
+    final ret = await _repo.upload(Uint8List.fromList(zipBytes));
 
     if (ret.success) {
       emit(state.copyWith(status: SkillPublishStatus.success));

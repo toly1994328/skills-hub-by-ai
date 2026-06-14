@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:fx_dio/fx_dio.dart';
 
 import '../env/skill_host.dart';
-import '../model/create_skill_request.dart';
+import '../model/file_content.dart';
 import '../model/skill_detail.dart';
+import '../model/skill_file_item.dart';
 import '../model/skill_summary.dart';
 
 class SkillRepository with SkillHostMixin {
@@ -17,8 +20,8 @@ class SkillRepository with SkillHostMixin {
         'page': page,
         'page_size': pageSize,
       },
-      convertor: (data) {
-        List list = data['data']['list'] as List;
+      convertor: (dynamic data) {
+        final List<dynamic> list = data['data']['list'] as List<dynamic>;
         return list.map<SkillSummary>(SkillSummary.fromApi).toList();
       },
     );
@@ -28,16 +31,35 @@ class SkillRepository with SkillHostMixin {
   Future<ApiRet<SkillDetail>> detail(int id) {
     return host.get<SkillDetail>(
       '/skills/$id',
-      convertor: (data) => SkillDetail.fromApi(data['data']),
+      convertor: (dynamic data) => SkillDetail.fromApi(data['data']),
     );
   }
 
-  /// 创建技能
-  Future<ApiRet<int>> create(CreateSkillRequest request) {
+  /// 上传 zip 创建技能
+  Future<ApiRet<int>> upload(Uint8List zipBytes) {
     return host.post<int>(
-      '/skills',
-      data: request.toJson(),
-      convertor: (data) => data['data']['id'] as int,
+      '/skills/upload',
+      data: zipBytes,
+      convertor: (dynamic data) => data['data']['id'] as int,
+    );
+  }
+
+  /// 查询文件目录
+  Future<ApiRet<List<SkillFileItem>>> files(int skillId) {
+    return host.get<List<SkillFileItem>>(
+      '/skills/$skillId/files',
+      convertor: (dynamic data) {
+        final List<dynamic> list = data['data'] as List<dynamic>;
+        return list.map<SkillFileItem>(SkillFileItem.fromApi).toList();
+      },
+    );
+  }
+
+  /// 查询单文件内容
+  Future<ApiRet<FileContent>> fileContent(int skillId, String filePath) {
+    return host.get<FileContent>(
+      '/skills/$skillId/files/$filePath',
+      convertor: (dynamic data) => FileContent.fromApi(data['data']),
     );
   }
 }

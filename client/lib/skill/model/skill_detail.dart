@@ -8,10 +8,14 @@ class SkillDetail {
   final String sourceUrl;
   final String version;
   final String downloadUrl;
-  final String content;
+  final int fileCount;
+  final int totalSize;
+  final String entryFile;
+  final String storagePath;
   final String status;
   final String createdAt;
   final String updatedAt;
+  final String entryContent;
 
   SkillDetail({
     required this.id,
@@ -23,10 +27,14 @@ class SkillDetail {
     this.sourceUrl = '',
     this.version = '',
     this.downloadUrl = '',
-    this.content = '',
+    this.fileCount = 0,
+    this.totalSize = 0,
+    this.entryFile = 'SKILL.md',
+    this.storagePath = '',
     this.status = '',
     this.createdAt = '',
     this.updatedAt = '',
+    this.entryContent = '',
   });
 
   factory SkillDetail.fromApi(dynamic map) => SkillDetail(
@@ -39,10 +47,14 @@ class SkillDetail {
     sourceUrl: map['source_url'] ?? '',
     version: map['version'] ?? '',
     downloadUrl: map['download_url'] ?? '',
-    content: map['content'] ?? '',
+    fileCount: map['file_count'] ?? 0,
+    totalSize: map['total_size'] ?? 0,
+    entryFile: map['entry_file'] ?? 'SKILL.md',
+    storagePath: map['storage_path'] ?? '',
     status: map['status'] ?? '',
     createdAt: map['created_at'] ?? '',
     updatedAt: map['updated_at'] ?? '',
+    entryContent: map['entry_content'] ?? '',
   );
 
   List<String> get tagList => tags.isEmpty ? [] : tags.split(',');
