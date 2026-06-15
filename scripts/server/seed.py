@@ -137,12 +137,19 @@ def main():
         return
 
     # 加载所有 meta.json
-    meta_map: dict = {}  # source_name -> author info
+    meta_map: dict = {}  # source_name -> {"author": {...}, "skills": {path: {...}}}
     for meta_file in DATA_DIR.glob("*/meta.json"):
         try:
             meta_data = json.loads(meta_file.read_text(encoding="utf-8"))
             source_name = meta_file.parent.name
-            meta_map[source_name] = meta_data.get("author", {})
+            # skills 按 path 索引
+            skills_by_path: dict = {}
+            for s in meta_data.get("skills", []):
+                skills_by_path[s.get("path", "")] = s
+            meta_map[source_name] = {
+                "author": meta_data.get("author", {}),
+                "skills": skills_by_path,
+            }
         except Exception:
             pass
 
@@ -158,7 +165,15 @@ def main():
 
         # 确定所属 source，提取 author 信息
         source_name = rel_path.split("/")[0]
-        author_info = meta_map.get(source_name, {})
+        source_meta = meta_map.get(source_name, {})
+        author_info = source_meta.get("author", {})
+
+        # 匹配 skill 的 keywords
+        # rel_path 如 "toly/skills/feature/feature-analyst"
+        # meta.json 中 skill.path 如 "skills/feature/feature-analyst"
+        skill_rel = "/".join(rel_path.split("/")[1:])  # 去掉 source_name
+        skill_meta = source_meta.get("skills", {}).get(skill_rel, {})
+        keywords = skill_meta.get("keywords", [])
 
         # 构造 meta 参数
         upload_meta = {}
@@ -168,11 +183,9 @@ def main():
             upload_meta["icon_url"] = author_info["image"]
         if author_info.get("repo"):
             upload_meta["source_url"] = author_info["repo"]
-            # download_url: repo + skill 相对路径
-            # rel_path 如 "toly/skills/feature/feature-analyst"
-            # 去掉 source_name 前缀得到 repo 内的路径
-            skill_rel = "/".join(rel_path.split("/")[1:])
             upload_meta["download_url"] = f"{author_info['repo']}/tree/main/{skill_rel}"
+        if keywords:
+            upload_meta["tags"] = ",".join(keywords)
 
         # 打 zip
         zip_path = zip_folder(folder)
