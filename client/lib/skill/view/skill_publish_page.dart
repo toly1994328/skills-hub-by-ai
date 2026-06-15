@@ -32,7 +32,7 @@ class _PublishViewState extends State<_PublishView> {
   List<int> _zipBytes = [];
 
   Future<void> _pickZip() async {
-    final FilePickerResult? result = await FilePicker.pickFiles(
+    final FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['zip'],
     );
