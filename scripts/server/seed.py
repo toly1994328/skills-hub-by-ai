@@ -4,8 +4,8 @@ Skills Share — 种子数据灌入脚本（v0.0.3）
 遍历 data/ 下所有含 SKILL.md 的文件夹，临时压缩为 zip，上传到服务端。
 
 用法：
-    python seed.py              # 默认 localhost:3000
-    python seed.py 192.168.1.5  # 指定 IP
+    python scripts/server/seed.py              # 默认 localhost:3000
+    python scripts/server/seed.py 192.168.1.5  # 指定 IP
 """
 
 import io
@@ -169,10 +169,21 @@ def main():
         author_info = source_meta.get("author", {})
 
         # 匹配 skill 的 keywords
-        # rel_path 如 "toly/skills/feature/feature-analyst"
-        # meta.json 中 skill.path 如 "skills/feature/feature-analyst"
-        skill_rel = "/".join(rel_path.split("/")[1:])  # 去掉 source_name
+        # rel_path 如 "anthropics/skills/skills/algorithmic-art"
+        # 去掉 source_name 得到 "skills/skills/algorithmic-art"
+        # meta.json 中 skill.path 如 "skills/algorithmic-art"
+        # 需要去掉第一个 "skills/" 前缀来匹配
+        skill_rel = "/".join(rel_path.split("/")[1:])  # "skills/skills/algorithmic-art"
+        # 尝试直接匹配
         skill_meta = source_meta.get("skills", {}).get(skill_rel, {})
+        if not skill_meta:
+            # 去掉第一个 "skills/" 再匹配
+            if skill_rel.startswith("skills/"):
+                skill_rel_short = skill_rel[len("skills/"):]  # "skills/algorithmic-art"
+                skill_meta = source_meta.get("skills", {}).get(skill_rel_short, {})
+                if not skill_meta:
+                    # 也可能 meta 里没有 "skills/" 前缀
+                    skill_meta = source_meta.get("skills", {}).get(skill_rel_short.split("/", 1)[-1] if "/" in skill_rel_short else skill_rel_short, {})
         keywords = skill_meta.get("keywords", [])
 
         # 构造 meta 参数
