@@ -78,6 +78,23 @@ pub struct PagedList<T: Serialize> {
     pub page_size: u32,
 }
 
+/// 上传时额外传入的元数据（覆盖 front-matter）
+#[derive(Debug, Deserialize)]
+pub struct UploadMeta {
+    #[serde(default)]
+    pub author: Option<String>,
+    #[serde(default)]
+    pub icon_url: Option<String>,
+    #[serde(default)]
+    pub source_url: Option<String>,
+    #[serde(default)]
+    pub download_url: Option<String>,
+    #[serde(default)]
+    pub tags: Option<String>,
+    #[serde(default)]
+    pub version: Option<String>,
+}
+
 /// 从 SKILL.md front-matter 解析的元信息
 #[derive(Debug, Deserialize)]
 pub struct SkillMeta {

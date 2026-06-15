@@ -1,5 +1,5 @@
 use axum::body::Bytes;
-use axum::extract::{Path, Query, State};
+use axum::extract::{Multipart, Path, Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
@@ -8,7 +8,7 @@ use crate::app_error::AppError;
 use crate::app_response::AppResponse;
 use crate::AppState;
 
-use super::skill_model::{FileContent, PagedList, Skill, SkillFile, SkillSummary, UploadResult};
+use super::skill_model::{FileContent, PagedList, Skill, SkillFile, SkillSummary, UploadResult, UploadMeta};
 use super::skill_service;
 
 #[derive(Deserialize)]
@@ -26,13 +26,36 @@ pub struct SkillDetail {
 
 async fn upload(
     State(state): State<AppState>,
-    body: Bytes,
+    mut multipart: Multipart,
 ) -> Result<Json<AppResponse<UploadResult>>, AppError> {
-    if body.is_empty() {
-        return Err(AppError::bad_request("未找到上传文件"));
+    let mut zip_bytes: Option<Vec<u8>> = None;
+    let mut meta: Option<UploadMeta> = None;
+
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| AppError::bad_request(format!("读取上传数据失败: {}", e)))?
+    {
+        let name: String = field.name().unwrap_or("").to_string();
+        match name.as_str() {
+            "file" => {
+                let bytes: Bytes = field.bytes().await
+                    .map_err(|e| AppError::bad_request(format!("读取文件失败: {}", e)))?;
+                zip_bytes = Some(bytes.to_vec());
+            }
+            "meta" => {
+                let text: String = field.text().await
+                    .map_err(|e| AppError::bad_request(format!("读取元数据失败: {}", e)))?;
+                meta = Some(serde_json::from_str(&text)
+                    .map_err(|e| AppError::bad_request(format!("元数据 JSON 格式错误: {}", e)))?);
+            }
+            _ => {}
+        }
     }
+
+    let bytes: Vec<u8> = zip_bytes.ok_or_else(|| AppError::bad_request("未找到 file 字段"))?;
     let result: UploadResult =
-        skill_service::upload_skill(&state.db, &state.storage_root, body.to_vec()).await?;
+        skill_service::upload_skill(&state.db, &state.storage_root, bytes, meta).await?;
     Ok(AppResponse::success(result))
 }
 

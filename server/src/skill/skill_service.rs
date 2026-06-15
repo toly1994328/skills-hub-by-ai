@@ -6,7 +6,7 @@ use sqlx::MySqlPool;
 use crate::app_error::AppError;
 
 use super::skill_model::{
-    FileContent, PagedList, Skill, SkillFile, SkillMeta, SkillSummary, UploadResult,
+    FileContent, PagedList, Skill, SkillFile, SkillMeta, SkillSummary, UploadMeta, UploadResult,
 };
 use super::skill_repository;
 
@@ -15,22 +15,36 @@ pub async fn upload_skill(
     db: &MySqlPool,
     storage_root: &str,
     zip_bytes: Vec<u8>,
+    upload_meta: Option<UploadMeta>,
 ) -> Result<UploadResult, AppError> {
     // 1. 同步部分：解压 zip，提取所有数据
     let (meta, files) = extract_zip_contents(zip_bytes)?;
 
-    // 2. 插入 skills 表
-    let tags_str: String = meta.tags.unwrap_or_default().join(",");
+    // 2. 合并 meta：upload_meta 的字段覆盖 front-matter
+    let author: String = upload_meta.as_ref().and_then(|m| m.author.clone())
+        .unwrap_or_else(|| meta.author.unwrap_or_default());
+    let icon_url: String = upload_meta.as_ref().and_then(|m| m.icon_url.clone())
+        .unwrap_or_else(|| meta.icon_url.unwrap_or_default());
+    let source_url: String = upload_meta.as_ref().and_then(|m| m.source_url.clone())
+        .unwrap_or_else(|| meta.source_url.unwrap_or_default());
+    let download_url: String = upload_meta.as_ref().and_then(|m| m.download_url.clone())
+        .unwrap_or_else(|| meta.download_url.unwrap_or_default());
+    let version: String = upload_meta.as_ref().and_then(|m| m.version.clone())
+        .unwrap_or_else(|| meta.version.unwrap_or_else(|| "1.0.0".to_string()));
+    let tags_str: String = upload_meta.as_ref().and_then(|m| m.tags.clone())
+        .unwrap_or_else(|| meta.tags.unwrap_or_default().join(","));
+
+    // 3. 插入 skills 表
     let skill_id: u64 = skill_repository::insert_skill(
         db,
         &meta.name,
         meta.description.as_deref().unwrap_or(""),
-        meta.author.as_deref().unwrap_or(""),
+        &author,
         &tags_str,
-        meta.icon_url.as_deref().unwrap_or(""),
-        meta.source_url.as_deref().unwrap_or(""),
-        meta.version.as_deref().unwrap_or("1.0.0"),
-        meta.download_url.as_deref().unwrap_or(""),
+        &icon_url,
+        &source_url,
+        &version,
+        &download_url,
         "",
     )
     .await?;

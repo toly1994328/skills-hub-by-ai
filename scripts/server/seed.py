@@ -82,15 +82,18 @@ def zip_folder(folder: Path) -> str:
     return tmp.name
 
 
-def upload_zip(zip_path: str) -> dict:
-    """上传 zip 文件到服务端"""
-    result = subprocess.run(
-        ["curl.exe", "-s", "-w", "\n%{http_code}", "-X", "POST",
-         "-H", "Content-Type: application/zip",
-         "--data-binary", f"@{zip_path}",
-         f"{BASE_URL}/api/skills/upload"],
-        capture_output=True, text=True, encoding="utf-8"
-    )
+def upload_zip(zip_path: str, meta: dict | None = None) -> dict:
+    """上传 zip 文件到服务端（multipart: file + meta）"""
+    cmd = ["curl.exe", "-s", "-w", "\n%{http_code}", "-X", "POST",
+           "-F", f"file=@{zip_path};type=application/zip"]
+
+    if meta:
+        import json as _json
+        cmd += ["-F", f"meta={_json.dumps(meta, ensure_ascii=False)}"]
+
+    cmd.append(f"{BASE_URL}/api/skills/upload")
+
+    result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
     output = result.stdout.strip()
     parts = output.rsplit("\n", 1)
     body = parts[0] if len(parts) == 2 else ""
@@ -133,6 +136,16 @@ def main():
         warn("未找到任何含 SKILL.md 的文件夹")
         return
 
+    # 加载所有 meta.json
+    meta_map: dict = {}  # source_name -> author info
+    for meta_file in DATA_DIR.glob("*/meta.json"):
+        try:
+            meta_data = json.loads(meta_file.read_text(encoding="utf-8"))
+            source_name = meta_file.parent.name
+            meta_map[source_name] = meta_data.get("author", {})
+        except Exception:
+            pass
+
     info(f"找到 {len(folders)} 个技能文件夹")
     print()
 
@@ -143,11 +156,29 @@ def main():
     for i, folder in enumerate(reversed(folders), 1):
         rel_path = folder.relative_to(DATA_DIR).as_posix()
 
+        # 确定所属 source，提取 author 信息
+        source_name = rel_path.split("/")[0]
+        author_info = meta_map.get(source_name, {})
+
+        # 构造 meta 参数
+        upload_meta = {}
+        if author_info.get("name"):
+            upload_meta["author"] = author_info["name"]
+        if author_info.get("image"):
+            upload_meta["icon_url"] = author_info["image"]
+        if author_info.get("repo"):
+            upload_meta["source_url"] = author_info["repo"]
+            # download_url: repo + skill 相对路径
+            # rel_path 如 "toly/skills/feature/feature-analyst"
+            # 去掉 source_name 前缀得到 repo 内的路径
+            skill_rel = "/".join(rel_path.split("/")[1:])
+            upload_meta["download_url"] = f"{author_info['repo']}/tree/main/{skill_rel}"
+
         # 打 zip
         zip_path = zip_folder(folder)
 
         # 上传
-        r = upload_zip(zip_path)
+        r = upload_zip(zip_path, upload_meta if upload_meta else None)
 
         # 删临时文件
         os.unlink(zip_path)
